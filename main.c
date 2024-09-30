@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
         int RN = MIN + rand() % (MAX - MIN + 1);  // Random number between MIN and MAX
         int steps = collatz_steps(RN);
 
-        printf("Random Number: %d, Steps: %d\n", RN, steps);
+        printf("%d,%d\n", RN, steps);
     }
 
     return 0;
