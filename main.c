@@ -7,14 +7,20 @@
 typedef struct {
     int number;
     int steps;
+    int frequency;
 } CacheEntry;
 
-CacheEntry cache[CACHE_SIZE];  // Cache array
+CacheEntry cache[CACHE_SIZE];
+
+
+int cache_hits = 0;          
+int total_cache_accesses = 0;
 
 void initialize_cache() {
     for (int i = 0; i < CACHE_SIZE; i++) {
         cache[i].number = -1;
         cache[i].steps = -1;
+        cache[i].frequency = 0;
     }
 }
 
@@ -23,20 +29,17 @@ int hash_function(int n) {
     return n % CACHE_SIZE;
 }
 
-int cached_collatz_steps(int n) {
-    int hash = hash_function(n);
-    
-    // Checks the cache for similar results
-    if (cache[hash].number == n) {
-        return cache[hash].steps;
+int get_Least_Used() {
+    int lfu_index = 0;
+    int min_frequency = cache[0].frequency;
+
+     for (int i = 1; i < CACHE_SIZE; i++) {
+        if (cache[i].frequency < min_frequency) {
+            min_frequency = cache[i].frequency;
+            lfu_index = i;
+        }
     }
-    
-    // Call the core function and store the result
-    int steps = collatz_steps(n);
-    cache[hash].number = n;
-    cache[hash].steps = steps;
-    
-    return steps;
+    return lfu_index;
 }
 
 // Function to perform Collatz conjecture and count steps
@@ -50,6 +53,33 @@ int collatz_steps(int n) {
         }
         steps++;
     }
+    return steps;
+}
+
+int cached_collatz_steps(int n) {
+    total_cache_accesses++;
+    int hash = hash_function(n);
+    
+    // Checks the cache for similar results
+    if (cache[hash].number == n) {
+        cache_hits++;
+        cache[hash].frequency++;
+        return cache[hash].steps;
+    }
+    
+    // If the cache slot is occupied by a different number
+    if (cache[hash].number != -1) {
+        // Evict the least frequently used entry in the cache
+        int lfu_index = get_Least_Used();
+        hash = lfu_index;
+    }
+
+    // Call the core function and store the result
+    int steps = collatz_steps(n);
+    cache[hash].number = n;
+    cache[hash].steps = steps;
+    cache[hash].frequency = 1;
+    
     return steps;
 }
 
@@ -70,13 +100,11 @@ int main(int argc, char *argv[]) {
 
     srand(time(NULL));
     
-    initialize_cache();
-    
     for (int i = 0; i < N; i++) {
         int RN = MIN + rand() % (MAX - MIN + 1);
         int steps = cached_collatz_steps(RN);
-
-        printf("%d,%d\n", RN, steps);
+        double cache_hit_percentage = (cache_hits / (double)total_cache_accesses) * 100.0;
+        printf("%d,%d,%2f%%\n", RN, steps, cache_hit_percentage);
     }
 
     return 0;
