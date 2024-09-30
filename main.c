@@ -2,6 +2,43 @@
 #include <stdlib.h>
 #include <time.h>
 
+#define CACHE_SIZE 1000
+
+typedef struct {
+    int number;
+    int steps;
+} CacheEntry;
+
+CacheEntry cache[CACHE_SIZE];  // Cache array
+
+void initialize_cache() {
+    for (int i = 0; i < CACHE_SIZE; i++) {
+        cache[i].number = -1;
+        cache[i].steps = -1;
+    }
+}
+
+// Simple hash function for the cache
+int hash_function(int n) {
+    return n % CACHE_SIZE;
+}
+
+int cached_collatz_steps(int n) {
+    int hash = hash_function(n);
+    
+    // Checks the cache for similar results
+    if (cache[hash].number == n) {
+        return cache[hash].steps;
+    }
+    
+    // Call the core function and store the result
+    int steps = collatz_steps(n);
+    cache[hash].number = n;
+    cache[hash].steps = steps;
+    
+    return steps;
+}
+
 // Function to perform Collatz conjecture and count steps
 int collatz_steps(int n) {
     int steps = 0;
@@ -22,7 +59,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // Parse command-line arguments
     int N = atoi(argv[1]);
     int MIN = atoi(argv[2]);
     int MAX = atoi(argv[3]);
@@ -33,11 +69,12 @@ int main(int argc, char *argv[]) {
     }
 
     srand(time(NULL));
-
-    // Loop through N random numbers and apply the Collatz conjecture
+    
+    initialize_cache();
+    
     for (int i = 0; i < N; i++) {
-        int RN = MIN + rand() % (MAX - MIN + 1);  // Random number between MIN and MAX
-        int steps = collatz_steps(RN);
+        int RN = MIN + rand() % (MAX - MIN + 1);
+        int steps = cached_collatz_steps(RN);
 
         printf("%d,%d\n", RN, steps);
     }
